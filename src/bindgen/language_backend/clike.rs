@@ -540,6 +540,15 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
     }
 
     fn write_struct<W: Write>(&mut self, out: &mut SourceWriter<W>, s: &Struct) {
+        if !self.config.constant.allow_constexpr {
+            for constant in &s.associated_constants {
+                out.new_line();
+                constant.write(self.config, self, out, Some(s));
+            }
+
+            out.new_line();
+        }
+
         let condition = s.cfg.to_condition(self.config);
         condition.write_before(self.config, out);
 
@@ -631,9 +640,11 @@ impl LanguageBackend for CLikeLanguageBackend<'_> {
             out.close_brace(true);
         }
 
-        for constant in &s.associated_constants {
-            out.new_line();
-            constant.write(self.config, self, out, Some(s));
+        if self.config.constant.allow_constexpr {
+            for constant in &s.associated_constants {
+                out.new_line();
+                constant.write(self.config, self, out, Some(s));
+            }
         }
 
         condition.write_after(self.config, out);
